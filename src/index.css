@@ -118,6 +118,7 @@ body {
 }
 .main-content {
   flex: 1;
+  min-width: 0;
   margin-left: var(--sidebar-width);
   padding-top: var(--topbar-height);
   min-height: 100vh;
@@ -126,7 +127,6 @@ body {
 }
 .page-container {
   padding: 28px 32px;
-  max-width: 1400px;
   animation: fadeIn 0.3s ease;
 }
 
@@ -525,7 +525,6 @@ body {
   border-radius: var(--r-lg);
   flex: 1;
   min-width: 260px;
-  max-width: 450px;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 200px);
