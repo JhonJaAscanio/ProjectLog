@@ -11,6 +11,10 @@ const DEFAULT_PROJECTS = [
     icon: '🚀',
     createdAt: new Date().toISOString(),
     tasks: [],
+    hasVersioning: false,
+    versions: [],
+    currentVersionId: null,
+    clientVersionId: null,
   },
 ];
 
@@ -59,6 +63,10 @@ const useStore = create(
           icon: project.icon || '📝',
           createdAt: new Date().toISOString(),
           tasks: [],
+          hasVersioning: project.hasVersioning || false,
+          versions: project.versions || [],
+          currentVersionId: project.currentVersionId || null,
+          clientVersionId: project.clientVersionId || null,
         };
         set((state) => ({ projects: [...state.projects, newProject] }));
         get().addActivity(`Proyecto creado: "${newProject.name}"`);
@@ -79,6 +87,47 @@ const useStore = create(
           activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
         }));
         get().addActivity(`Proyecto eliminado: "${project?.name}"`);
+      },
+
+      // Versions
+      addVersion: (projectId, versionName) => {
+        const newVersion = { id: uuidv4(), name: versionName, date: new Date().toISOString() };
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId ? { ...p, versions: [...(p.versions || []), newVersion] } : p
+          ),
+        }));
+        get().addActivity(`Nueva versión agregada: "${versionName}"`);
+      },
+      
+      setCurrentVersion: (projectId, versionId) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId ? { ...p, currentVersionId: versionId } : p
+          ),
+        }));
+      },
+      
+      setClientVersion: (projectId, versionId) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId ? { ...p, clientVersionId: versionId } : p
+          ),
+        }));
+      },
+      
+      deleteVersion: (projectId, versionId) => {
+        set((state) => ({
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p;
+            return {
+              ...p,
+              versions: (p.versions || []).filter(v => v.id !== versionId),
+              currentVersionId: p.currentVersionId === versionId ? null : p.currentVersionId,
+              clientVersionId: p.clientVersionId === versionId ? null : p.clientVersionId,
+            };
+          }),
+        }));
       },
 
       // Tasks CRUD

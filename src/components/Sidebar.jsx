@@ -5,13 +5,13 @@ import { useToast, Modal } from './shared/UIKit';
 export default function Sidebar({ currentPage, onNavigate }) {
   const { projects, theme, toggleTheme, addProject } = useStore();
   const [showAddModal, setShowAddModal] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', color: PROJECT_COLORS[0], icon: PROJECT_ICONS[0] });
+  const [form, setForm] = useState({ name: '', description: '', color: PROJECT_COLORS[0], icon: PROJECT_ICONS[0], hasVersioning: false });
   const toast = useToast();
 
   const handleAdd = () => {
     if (!form.name.trim()) return;
     addProject(form);
-    setForm({ name: '', description: '', color: PROJECT_COLORS[0], icon: PROJECT_ICONS[0] });
+    setForm({ name: '', description: '', color: PROJECT_COLORS[0], icon: PROJECT_ICONS[0], hasVersioning: false });
     setShowAddModal(false);
     toast('Proyecto creado exitosamente', 'success');
   };
@@ -143,6 +143,18 @@ export default function Sidebar({ currentPage, onNavigate }) {
               </div>
             ))}
           </div>
+        </div>
+        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+          <input
+            type="checkbox"
+            id="hasVersioning"
+            checked={form.hasVersioning}
+            onChange={(e) => setForm({ ...form, hasVersioning: e.target.checked })}
+            style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--brand)' }}
+          />
+          <label htmlFor="hasVersioning" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>
+            Habilitar control de versiones para este proyecto
+          </label>
         </div>
       </Modal>
     </>

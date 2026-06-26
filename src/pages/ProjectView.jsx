@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import useStore, { PRIORITIES } from '../store/useStore';
 import KanbanBoard from '../components/KanbanBoard';
-import { Modal } from '../components/shared/UIKit';
-import { useToast } from '../components/shared/UIKit';
+import { Modal, useToast } from '../components/shared/UIKit';
+import VersionsModal from '../components/VersionsModal';
 import { PROJECT_COLORS, PROJECT_ICONS } from '../store/useStore';
 import { StatusBadge } from '../components/shared/helpers';
 
@@ -47,6 +47,7 @@ export default function ProjectView({ projectId }) {
 
   const [filters, setFilters] = useState({ priority: '', search: '' });
   const [showEdit, setShowEdit] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const [editForm, setEditForm] = useState(null);
 
   if (!project) {
@@ -62,7 +63,7 @@ export default function ProjectView({ projectId }) {
   }
 
   const handleEdit = () => {
-    setEditForm({ name: project.name, description: project.description, color: project.color, icon: project.icon });
+    setEditForm({ name: project.name, description: project.description, color: project.color, icon: project.icon, hasVersioning: project.hasVersioning });
     setShowEdit(true);
   };
 
@@ -101,6 +102,33 @@ export default function ProjectView({ projectId }) {
             <button className="btn btn-danger btn-sm" onClick={handleDelete}>🗑 Eliminar</button>
           </div>
         </div>
+
+        {/* Versioning Block */}
+        {project.hasVersioning && (
+          <div style={{
+            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-md)', padding: '12px 16px', marginBottom: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10
+          }}>
+            <div style={{ display: 'flex', gap: 20 }}>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Versión Actual</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand)' }}>
+                  {project.versions?.find(v => v.id === project.currentVersionId)?.name || 'Ninguna'}
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Versión del Cliente</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>
+                  {project.versions?.find(v => v.id === project.clientVersionId)?.name || 'Ninguna'}
+                </span>
+              </div>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowVersions(true)}>
+              ⚙️ Gestionar Versiones
+            </button>
+          </div>
+        )}
 
         {/* Stats */}
         <ProjectStats stats={stats} />
@@ -176,8 +204,28 @@ export default function ProjectView({ projectId }) {
               ))}
             </div>
           </div>
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+            <input
+              type="checkbox"
+              id="editHasVersioning"
+              checked={editForm.hasVersioning || false}
+              onChange={(e) => setEditForm({ ...editForm, hasVersioning: e.target.checked })}
+              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--brand)' }}
+            />
+            <label htmlFor="editHasVersioning" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>
+              Habilitar control de versiones para este proyecto
+            </label>
+          </div>
         </Modal>
       )}
+
+      {/* Versions Modal */}
+      <VersionsModal 
+        open={showVersions} 
+        onClose={() => setShowVersions(false)} 
+        projectId={project.id} 
+        project={project} 
+      />
     </div>
   );
 }
