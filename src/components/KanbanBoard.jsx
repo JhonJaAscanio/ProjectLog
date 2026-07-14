@@ -44,7 +44,8 @@ export default function KanbanBoard({ project, filters }) {
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
     const newStatus = destination.droppableId;
-    moveTask(project.id, draggableId, newStatus);
+    const newIndex = destination.index;
+    moveTask(project.id, draggableId, newStatus, newIndex);
     toast(`Tarea movida a "${newStatus}"`, 'success');
   };
 

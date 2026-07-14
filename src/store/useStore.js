@@ -181,8 +181,41 @@ const useStore = create(
         get().addTask(projectId, { ...task, title: `${task.title} (copia)` });
       },
 
-      moveTask: (projectId, taskId, newStatus) => {
-        get().updateTask(projectId, taskId, { status: newStatus });
+      moveTask: (projectId, taskId, newStatus, newIndex) => {
+        const oldTask = get().projects.find(p => p.id === projectId)?.tasks.find(t => t.id === taskId);
+        
+        set((state) => ({
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p;
+            
+            const taskIndex = p.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return p;
+            
+            const task = { ...p.tasks[taskIndex], status: newStatus };
+            const tasksWithoutMoved = [...p.tasks];
+            tasksWithoutMoved.splice(taskIndex, 1);
+            
+            if (newIndex !== undefined) {
+              const filteredTasks = tasksWithoutMoved.filter(t => t.status === newStatus);
+              const taskAfter = filteredTasks[newIndex];
+              
+              if (taskAfter) {
+                const insertIndex = tasksWithoutMoved.findIndex(t => t.id === taskAfter.id);
+                tasksWithoutMoved.splice(insertIndex, 0, task);
+              } else {
+                tasksWithoutMoved.push(task);
+              }
+            } else {
+              tasksWithoutMoved.push(task);
+            }
+            
+            return { ...p, tasks: tasksWithoutMoved };
+          })
+        }));
+
+        if (oldTask && oldTask.status !== newStatus) {
+          get().addActivity(`Tarea "${oldTask.title}" → ${newStatus}`);
+        }
       },
 
       addComment: (projectId, taskId, text) => {
