@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 
+export const DEFAULT_COLUMNS = [
+  { id: 'Pendiente', name: 'Pendiente', color: '#8b8bff', icon: '⏳' },
+  { id: 'En Proceso', name: 'En Proceso', color: '#38bdf8', icon: '⚡' },
+  { id: 'En Revisión', name: 'En Revisión', color: '#f59e0b', icon: '🔍' },
+  { id: 'Completada', name: 'Completada', color: '#4ade80', icon: '✅' },
+  { id: 'Cancelada', name: 'Cancelada', color: '#6b7280', icon: '❌' }
+];
+
 const DEFAULT_PROJECTS = [
   {
     id: uuidv4(),
@@ -11,6 +19,7 @@ const DEFAULT_PROJECTS = [
     icon: '🚀',
     createdAt: new Date().toISOString(),
     tasks: [],
+    columns: DEFAULT_COLUMNS,
     hasVersioning: false,
     versions: [],
     currentVersionId: null,
@@ -59,10 +68,11 @@ const useStore = create(
           id: uuidv4(),
           name: project.name,
           description: project.description || '',
-          color: project.color || '#6366f1',
-          icon: project.icon || '📝',
+          color: project.color,
+          icon: project.icon,
           createdAt: new Date().toISOString(),
           tasks: [],
+          columns: DEFAULT_COLUMNS,
           hasVersioning: project.hasVersioning || false,
           versions: project.versions || [],
           currentVersionId: project.currentVersionId || null,
@@ -126,6 +136,62 @@ const useStore = create(
               currentVersionId: p.currentVersionId === versionId ? null : p.currentVersionId,
               clientVersionId: p.clientVersionId === versionId ? null : p.clientVersionId,
             };
+          }),
+        }));
+      },
+
+      // Columns CRUD
+      addColumn: (projectId, column) => {
+        const newColumn = { id: uuidv4(), name: column.name, color: column.color, icon: column.icon };
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId ? { ...p, columns: [...(p.columns || DEFAULT_COLUMNS), newColumn] } : p
+          ),
+        }));
+        get().addActivity(`Columna agregada: "${newColumn.name}"`);
+      },
+
+      updateColumn: (projectId, columnId, updates) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  columns: (p.columns || DEFAULT_COLUMNS).map((c) =>
+                    c.id === columnId ? { ...c, ...updates } : c
+                  ),
+                }
+              : p
+          ),
+        }));
+      },
+
+      deleteColumn: (projectId, columnId) => {
+        let deletedName = '';
+        set((state) => ({
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p;
+            const columns = p.columns || DEFAULT_COLUMNS;
+            const hasTasks = p.tasks.some(t => t.status === columnId);
+            if (hasTasks) return p; // No borrar si tiene tareas
+            const col = columns.find(c => c.id === columnId);
+            if (col) deletedName = col.name;
+            return { ...p, columns: columns.filter(c => c.id !== columnId) };
+          }),
+        }));
+        if (deletedName) {
+          get().addActivity(`Columna eliminada: "${deletedName}"`);
+        }
+      },
+
+      reorderColumns: (projectId, sourceIndex, destinationIndex) => {
+        set((state) => ({
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p;
+            const newCols = Array.from(p.columns || DEFAULT_COLUMNS);
+            const [moved] = newCols.splice(sourceIndex, 1);
+            newCols.splice(destinationIndex, 0, moved);
+            return { ...p, columns: newCols };
           }),
         }));
       },
@@ -237,23 +303,33 @@ const useStore = create(
       // Computed Helpers
       getStats: () => {
         const { projects } = get();
-        const allTasks = projects.flatMap((p) => p.tasks);
+        let pending = 0, inProgress = 0, inReview = 0, completed = 0, cancelled = 0, overdue = 0, totalTasks = 0;
+        let upcoming = [];
         const now = new Date();
+
+        projects.forEach(p => {
+          const cols = p.columns || DEFAULT_COLUMNS;
+          p.tasks.forEach(t => {
+            totalTasks++;
+            const cName = cols.find(c => c.id === t.status)?.name;
+            if (cName === 'Pendiente') pending++;
+            else if (cName === 'En Proceso') inProgress++;
+            else if (cName === 'En Revisión') inReview++;
+            else if (cName === 'Completada') completed++;
+            else if (cName === 'Cancelada') cancelled++;
+            
+            if (t.dueDate && cName !== 'Completada' && cName !== 'Cancelada') {
+              if (new Date(t.dueDate) < now) overdue++;
+              else upcoming.push(t);
+            }
+          });
+        });
+
+        upcoming.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
         return {
           totalProjects: projects.length,
-          totalTasks: allTasks.length,
-          pending: allTasks.filter((t) => t.status === 'Pendiente').length,
-          inProgress: allTasks.filter((t) => t.status === 'En Proceso').length,
-          inReview: allTasks.filter((t) => t.status === 'En Revisión').length,
-          completed: allTasks.filter((t) => t.status === 'Completada').length,
-          cancelled: allTasks.filter((t) => t.status === 'Cancelada').length,
-          overdue: allTasks.filter(
-            (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Completada' && t.status !== 'Cancelada'
-          ).length,
-          upcoming: allTasks
-            .filter((t) => t.dueDate && new Date(t.dueDate) >= now && t.status !== 'Completada' && t.status !== 'Cancelada')
-            .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-            .slice(0, 5),
+          totalTasks, pending, inProgress, inReview, completed, cancelled, overdue, upcoming: upcoming.slice(0, 5)
         };
       },
 
@@ -261,19 +337,34 @@ const useStore = create(
         const project = get().projects.find((p) => p.id === projectId);
         if (!project) return null;
         const tasks = project.tasks;
-        const completed = tasks.filter((t) => t.status === 'Completada').length;
+        const completedColId = (project.columns || DEFAULT_COLUMNS).find(c => c.name === 'Completada')?.id;
+        const completed = completedColId ? tasks.filter((t) => t.status === completedColId).length : 0;
         const total = tasks.length;
         return {
           total,
           completed,
           progress: total > 0 ? Math.round((completed / total) * 100) : 0,
-          byStatus: STATUSES.map((s) => ({ status: s, count: tasks.filter((t) => t.status === s).length })),
+          byStatus: (project.columns || DEFAULT_COLUMNS).map((c) => ({ id: c.id, status: c.name, color: c.color, count: tasks.filter((t) => t.status === c.id).length })),
           byPriority: PRIORITIES.map((p) => ({ priority: p, count: tasks.filter((t) => t.priority === p).length })),
         };
       },
     }),
     {
       name: 'bitacora-storage-v2',
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (version === 0 || !version) {
+          if (persistedState.projects) {
+            persistedState.projects = persistedState.projects.map(p => {
+              if (!p.columns) {
+                return { ...p, columns: DEFAULT_COLUMNS };
+              }
+              return p;
+            });
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );

@@ -10,9 +10,12 @@ function ProjectStats({ stats }) {
   if (!stats) return null;
   const items = [
     { label: 'Total', value: stats.total, color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
-    { label: 'Pendiente', value: stats.byStatus.find(s => s.status === 'Pendiente')?.count || 0, color: '#8b8bff', bg: 'rgba(139,139,255,0.1)' },
-    { label: 'En Proceso', value: stats.byStatus.find(s => s.status === 'En Proceso')?.count || 0, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)' },
-    { label: 'Completadas', value: stats.byStatus.find(s => s.status === 'Completada')?.count || 0, color: '#4ade80', bg: 'rgba(74,222,128,0.1)' },
+    ...stats.byStatus.map(s => ({
+      label: s.status, 
+      value: s.count, 
+      color: s.color, 
+      bg: `color-mix(in srgb, ${s.color} 10%, transparent)`
+    }))
   ];
   return (
     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>

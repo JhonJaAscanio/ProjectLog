@@ -84,7 +84,7 @@ export default function ProjectsPage({ onNavigate }) {
                     )}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
                       {stats.byStatus.filter(s => s.count > 0).map(s => (
-                        <StatusBadge key={s.status} status={s.status} />
+                        <StatusBadge key={s.id || s.status} status={s.id || s.status} projectId={p.id} />
                       ))}
                     </div>
                   </>

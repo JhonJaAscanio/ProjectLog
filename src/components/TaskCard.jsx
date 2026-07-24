@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import useStore, { STATUSES, PRIORITIES } from '../store/useStore';
+import useStore, { DEFAULT_COLUMNS, PRIORITIES } from '../store/useStore';
 import { useToast, Modal } from './shared/UIKit';
 import { StatusBadge, PriorityBadge, formatDate, getDueClass, PRIORITY_COLOR } from './shared/helpers';
 import { Dropdown, DropdownItem } from './shared/UIKit';
@@ -7,7 +7,9 @@ import { Dropdown, DropdownItem } from './shared/UIKit';
 const TAGS_PRESETS = ['Bug', 'Feature', 'UX', 'Backend', 'Frontend', 'Documentación', 'Research', 'Diseño'];
 
 function TaskForm({ task, projectId, onClose }) {
-  const { addTask, updateTask } = useStore();
+  const { addTask, updateTask, projects } = useStore();
+  const project = projects.find(p => p.id === projectId);
+  const columns = project?.columns || DEFAULT_COLUMNS;
   const toast = useToast();
   const [form, setForm] = useState({
     title: task?.title || '',
@@ -60,7 +62,7 @@ function TaskForm({ task, projectId, onClose }) {
           <label className="form-label">Estado</label>
           <select className="form-select" value={form.status}
             onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            {STATUSES.map((s) => <option key={s}>{s}</option>)}
+            {columns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
       </div>
@@ -106,7 +108,10 @@ function TaskForm({ task, projectId, onClose }) {
 }
 
 function TaskDetailModal({ task, projectId, onClose }) {
-  const { addComment, deleteTask, duplicateTask } = useStore();
+  const { addComment, deleteTask, duplicateTask, projects } = useStore();
+  const project = projects.find(p => p.id === projectId);
+  const column = (project?.columns || []).find(c => c.id === task?.status);
+  const statusName = column ? column.name : task?.status;
   const [editing, setEditing] = useState(false);
   const [commentText, setCommentText] = useState('');
   const toast = useToast();
@@ -131,7 +136,7 @@ function TaskDetailModal({ task, projectId, onClose }) {
     onClose();
   };
 
-  const dueClass = getDueClass(task.dueDate, task.status);
+  const dueClass = getDueClass(task.dueDate, statusName);
 
   if (editing) {
     return (
@@ -152,7 +157,7 @@ function TaskDetailModal({ task, projectId, onClose }) {
       }
     >
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-        <StatusBadge status={task.status} />
+        <StatusBadge status={task.status} projectId={projectId} />
         <PriorityBadge priority={task.priority} />
         {task.dueDate && (
           <span className={`task-card-date ${dueClass}`}>
@@ -195,11 +200,15 @@ function TaskDetailModal({ task, projectId, onClose }) {
 }
 
 export function TaskCard({ task, projectId }) {
-  const { deleteTask, duplicateTask } = useStore();
+  const { deleteTask, duplicateTask, projects } = useStore();
+  const project = projects.find(p => p.id === projectId);
+  const column = (project?.columns || []).find(c => c.id === task?.status);
+  const statusName = column ? column.name : task?.status;
+  
   const [showDetail, setShowDetail] = useState(false);
   const toast = useToast();
 
-  const dueClass = getDueClass(task.dueDate, task.status);
+  const dueClass = getDueClass(task.dueDate, statusName);
   const priorityColors = { Alta: '#ef4444', Media: '#f97316', Baja: '#22c55e' };
 
   return (

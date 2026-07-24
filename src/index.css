@@ -561,6 +561,25 @@ body {
   border-radius: var(--r-full);
   color: var(--text-muted);
 }
+.icon-btn-small {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+.kanban-column-header:hover .icon-btn-small {
+  opacity: 1;
+}
+.icon-btn-small:hover {
+  background: var(--bg-hover);
+}
 .kanban-column-body {
   flex: 1;
   overflow-y: auto;
