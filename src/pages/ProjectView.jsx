@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import useStore, { PRIORITIES } from '../store/useStore';
 import KanbanBoard from '../components/KanbanBoard';
-import { Modal, useToast } from '../components/shared/UIKit';
+import { Modal, useToast, Dropdown, DropdownItem } from '../components/shared/UIKit';
 import VersionsModal from '../components/VersionsModal';
+import ColumnFormModal from '../components/ColumnFormModal';
 import { PROJECT_COLORS, PROJECT_ICONS } from '../store/useStore';
 import { StatusBadge } from '../components/shared/helpers';
 
@@ -51,6 +52,7 @@ export default function ProjectView({ projectId }) {
   const [filters, setFilters] = useState({ priority: '', search: '' });
   const [showEdit, setShowEdit] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+  const [columnForm, setColumnForm] = useState({ open: false, column: null });
   const [editForm, setEditForm] = useState(null);
 
   if (!project) {
@@ -162,11 +164,25 @@ export default function ProjectView({ projectId }) {
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             />
           </div>
+          <Dropdown trigger={<button className="btn btn-ghost" style={{ padding: '6px 10px', fontSize: 18, marginLeft: 8 }}>⋮</button>}>
+            <DropdownItem icon="+" onClick={() => setColumnForm({ open: true, column: null })}>Añadir Columna</DropdownItem>
+          </Dropdown>
         </div>
       </div>
 
       {/* Kanban */}
-      <KanbanBoard project={project} filters={filters} />
+      <KanbanBoard 
+        project={project} 
+        filters={filters} 
+        onEditColumn={(col) => setColumnForm({ open: true, column: col })}
+      />
+
+      <ColumnFormModal 
+        open={columnForm.open} 
+        onClose={() => setColumnForm({ open: false, column: null })}
+        projectId={project.id}
+        column={columnForm.column}
+      />
 
       {/* Edit Modal */}
       {editForm && (

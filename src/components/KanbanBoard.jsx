@@ -3,13 +3,10 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import useStore, { DEFAULT_COLUMNS } from '../store/useStore';
 import { TaskCard, AddTaskButton } from './TaskCard';
 import { useToast } from './shared/UIKit';
-import ColumnFormModal from './ColumnFormModal';
 
-export default function KanbanBoard({ project, filters }) {
+export default function KanbanBoard({ project, filters, onEditColumn }) {
   const { moveTask, deleteColumn, reorderColumns } = useStore();
   const toast = useToast();
-  
-  const [columnForm, setColumnForm] = useState({ open: false, column: null });
 
   const getFilteredTasks = (status) => {
     let tasks = project.tasks.filter((t) => t.status === status);
@@ -83,7 +80,7 @@ export default function KanbanBoard({ project, filters }) {
                           </div>
                           
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button className="icon-btn-small" onClick={() => setColumnForm({ open: true, column: col })} title="Editar Columna">✏️</button>
+                            <button className="icon-btn-small" onClick={() => onEditColumn(col)} title="Editar Columna">✏️</button>
                             <button className="icon-btn-small" onClick={() => handleDeleteColumn(col.id)} title="Eliminar Columna" style={{ color: 'var(--danger)' }}>🗑</button>
                           </div>
                         </div>
@@ -138,27 +135,10 @@ export default function KanbanBoard({ project, filters }) {
                 );
               })}
               {provided.placeholder}
-              
-              <div style={{ minWidth: 260, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ width: '100%', height: 48, borderStyle: 'dashed' }}
-                  onClick={() => setColumnForm({ open: true, column: null })}
-                >
-                  + Añadir Columna
-                </button>
-              </div>
             </div>
           )}
         </Droppable>
       </DragDropContext>
-
-      <ColumnFormModal 
-        open={columnForm.open} 
-        onClose={() => setColumnForm({ open: false, column: null })}
-        projectId={project.id}
-        column={columnForm.column}
-      />
     </>
   );
 }
